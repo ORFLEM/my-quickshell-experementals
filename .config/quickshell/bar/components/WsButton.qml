@@ -31,6 +31,7 @@ Item {
                 case "occupied": return 20
                 case "urgent": return 20
                 case "empty": return 20
+                case "invisible": return 0
                 default: return 20
             }
         }
