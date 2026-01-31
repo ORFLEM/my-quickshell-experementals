@@ -10,6 +10,7 @@ PanelWindow {
     
     // Переопределяемые свойства
     property var workspacesData: ({})
+    property bool wsHover: false
     property string activeWindow: ""
     property string kbLayout: ""
     property string wm: ""
@@ -142,11 +143,12 @@ PanelWindow {
                         radius: 5
                         opacity: 0.65
                         gradient: Gradient {
-                            orientation: Gradient.Horizontal
-                            GradientStop { position: 0.0; color: col.backgroundAlt2 }
-                            GradientStop { position: 0.275; color: col.backgroundAlt1 }
-                            GradientStop { position: 0.725; color: col.backgroundAlt1 }
-                            GradientStop { position: 1.0; color: col.backgroundAlt2 }                        }
+                                orientation: Gradient.Horizontal
+                                GradientStop { position: 0.0; color: col.backgroundAlt2 }
+                                GradientStop { position: 0.275; color: col.backgroundAlt1 }
+                                GradientStop { position: 0.725; color: col.backgroundAlt1 }
+                                GradientStop { position: 1.0; color: col.backgroundAlt2 }
+                            }
                         }
                     
                     Rectangle {
@@ -217,7 +219,7 @@ PanelWindow {
                         spacing: 2
                      
                         Repeater {
-                            model: 10
+                            model: 5
                          
                             WsButton {
                                 wsId: index + 1
@@ -229,6 +231,23 @@ PanelWindow {
                                 }
                             }
                         }
+
+                        Repeater {
+                            model: 5
+
+                            WsButton {
+                                wsId: index + 6
+                                wsState: wsHover ? workspacesData["ws" + (index + 6)]?.class || "empty" : "invisible"
+                                icon: workspacesData["ws" + (index + 6)]?.icon || ""
+
+                                onClicked: {
+                                    changeWorkspace(wsId)
+                                }
+                            }
+                        }
+                    }
+                    HoverHandler {
+                        onHoveredChanged: wsHover = hovered
                     }
                 }
                 
