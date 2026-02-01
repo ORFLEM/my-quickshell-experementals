@@ -1,22 +1,28 @@
 import Quickshell
+import Quickshell.Wayland
 import Quickshell.Widgets
 import Quickshell.Io
 import QtQuick
 import "components"
 import "../helpers"
 
-PanelWindow {
+WlrLayershell {
     id: panel
+    layer: WlrLayer.Top
+    namespace: "bar"
     
     // Переопределяемые свойства
     property var workspacesData: ({})
     property bool wsHover: false
+    property bool sttngsHover: false
     property string activeWindow: ""
     property string kbLayout: ""
     property string wm: ""
     property var plr: ({})
     property string cava: ""
     property var vol: ({})
+    property var wthr: ({})
+    property string timed: ""
     
     anchors {
         top: true
@@ -289,9 +295,13 @@ PanelWindow {
                     width: weatherRow.width + 8
                     height: 24
 
-                    JsonListen {
+                    JsonPoll {
                         command: "~/.config/quickshell/scripts/weather_wid.sh"
-                            
+                        interval: 54000
+                        
+                        onDataChanged: {
+                            wthr = data
+                        }
                     }
                     
                     Rectangle {
@@ -307,13 +317,56 @@ PanelWindow {
                         }
                     }
 
+                    Rectangle {
+                        id: weatherBg
+                        anchors.fill: parent
+                        anchors.margins: 2
+                        radius: 3
+                        color: "transparent"
+                        Behavior on color { ColorAnimation { duration: 200 } }
+                    }
                     Row {
                         id: weatherRow
                         anchors.centerIn: parent
-                        spacing: 4
+                        spacing: 8
 
                         Text {
-                            // text: wthr.icon
+                            id: weatherIcon
+                            text: wthr.icon
+                            color: col.font
+                            font.family: "Mononoki Nerd Font Propo"
+                            font.weight: Font.bold
+                            font.pixelSize: 17
+                        Behavior on color { ColorAnimation { duration: 200 } }
+                        }
+                        Text {
+                            id: weatherText
+                            text: wthr.temp + "°C"
+                            color: col.font
+                            font.family: "Mononoki Nerd Font Propo"
+                            font.weight: Font.bold
+                            font.pixelSize: 17
+                        Behavior on color { ColorAnimation { duration: 200 } }
+                        }
+                    }
+                    MouseArea {
+                        anchors.fill: parent
+                        hoverEnabled: true
+                        
+                        onClicked: {
+                            Quickshell.execDetached(["sh", "-c", "~/.config/quickshell/scripts/popup.sh wthr"])
+                        }
+
+                        onEntered: {
+                            weatherBg.color = col.accent
+                            weatherIcon.color = col.fontDark
+                            weatherText.color = col.fontDark
+                        }
+
+                        onExited: {
+                            weatherBg.color = "transparent"
+                            weatherIcon.color = col.font
+                            weatherText.color = col.font
                         }
                     }
                 }
@@ -323,6 +376,13 @@ PanelWindow {
                     id: time
                     width: timeRow.width + 12
                     height: 24
+
+                    JsonListen {
+                        command: "~/.config/quickshell/scripts/timed show"
+                        onDataChanged: {
+                            timed = typeof data === 'string' ? data : ""
+                        }
+                    }
                     
                     Rectangle {
                         anchors.fill: parent
@@ -337,13 +397,23 @@ PanelWindow {
                         }
                     }
                     
+                    Rectangle {
+                        id: timeBg
+                        anchors.fill: parent
+                        anchors.margins: 2
+                        radius: 3
+                        color: "transparent"
+                        Behavior on color { ColorAnimation { duration: 200 } }
+                    }
+                    
                     Row {
                         id: timeRow
                         anchors.centerIn: parent
-                        spacing: 4
+                        spacing: 6
                         
                         Text {
-                            text: "󱑎 "
+                            id: timeIcon
+                            text: "󱑎"
                             color: col.accent
                             font.family: "Mononoki Nerd Font Propo"
                             font.pixelSize: 17
@@ -358,25 +428,33 @@ PanelWindow {
                             font.pixelSize: 17
                             font.weight: Font.Bold
                             anchors.verticalCenter: parent.verticalCenter
+                            text: timed
+                        }
+                    }
+                   
+                    MouseArea {
+                        anchors.fill: parent
+                        hoverEnabled: true
+                        acceptedButtons: Qt.AllButtons
+
+                        onEntered: {
+                            timeBg.color = col.accent
+                            timeIcon.color = col.fontDark
+                            timeText.color = col.fontDark
+                        }
                             
-                            property string timeString: ""
-                            
-                            function updateTime() {
-                                var now = new Date()
-                                var h = now.getHours().toString().padStart(2, '0')
-                                var m = now.getMinutes().toString().padStart(2, '0')
-                                var s = now.getSeconds().toString().padStart(2, '0')
-                                timeString = h + ":" + m + ":" + s
+                        onExited: {
+                            timeBg.color = "transparent"
+                            timeIcon.color = col.accent
+                            timeText.color = col.font                            
+                        }
+                        
+                        onClicked: function(mouse) {
+                            if (mouse.button === Qt.LeftButton) {
+                                Quickshell.execDetached(["sh", "-c", "~/.config/quickshell/scripts/timed t-d"])
                             }
-                            
-                            text: timeString
-                            Component.onCompleted: updateTime()
-                            
-                            Timer {
-                                interval: 1000
-                                running: true
-                                repeat: true
-                                onTriggered: timeText.updateTime()
+                            if (mouse.button === Qt.RightButton) {
+                                Quickshell.execDetached(["sh", "-c", "~/.config/quickshell/scripts/popup.sh cal"])
                             }
                         }
                     }
@@ -471,7 +549,7 @@ PanelWindow {
                     Row {
                         id: plrRow
                         anchors.centerIn: parent
-                        opacity: 0.65
+                        opacity: 0.55
                         
                         Text {
                             id: plrText1
@@ -547,6 +625,155 @@ PanelWindow {
 
                 // settings
                 Item {
+                    width: audioButton.width + networkButton.width + bluetoothButton.width + settingsIcon.width
+                    height: 24
+
+                    Rectangle {
+                        anchors.fill: parent
+                        radius: 5
+                        opacity: 0.65
+                        gradient: Gradient {
+                            orientation: Gradient.Horizontal
+                            GradientStop { position: 0.0; color: col.backgroundAlt2 }
+                            GradientStop { position: 0.275; color: col.backgroundAlt1 }
+                            GradientStop { position: 0.725; color: col.backgroundAlt1 }
+                            GradientStop { position: 1.0; color: col.backgroundAlt2 }
+                        }
+                    }
+                    Row {
+                        anchors.fill: parent
+                        spacing: 2
+                        anchors.margins: 2
+                        Rectangle {
+                            id: audioButton
+                            color: "transparent"
+                            implicitWidth: sttngsHover ? audioText.width + 12 : 0
+                            radius: 3
+                            implicitHeight: parent.height
+                            Behavior on color { ColorAnimation { duration: 200 } }
+                            Behavior on implicitWidth { NumberAnimation { duration: 200 } }
+
+                            Text {
+                                text: "󰗅"
+                                anchors.centerIn: parent
+                                id: audioText
+                                color: col.font
+                                font.family: "Mononoki Nerd Font Propo"
+                                font.pixelSize: 17
+                                font.weight: Font.bold
+                                Behavior on color { ColorAnimation { duration: 200 } }
+                            }
+                            MouseArea {
+                                anchors.fill: parent
+                                hoverEnabled: true
+                                
+                                onEntered: {
+                                    audioButton.color = col.accent
+                                    audioText.color = col.fontDark
+                                }
+                                    
+                                onExited: {
+                                    audioButton.color = "transparent"
+                                    audioText.color = col.font                            
+                                }
+
+                                onClicked: {
+                                    Quickshell.execDetached(["sh", "-c", "pavucontrol"])
+                                }
+                            }
+                        }
+                        
+                        Rectangle {
+                            id: networkButton
+                            color: "transparent"
+                            implicitWidth: sttngsHover ? networkText.width + 12 : 0
+                            radius: 3
+                            implicitHeight: parent.height
+                            Behavior on color { ColorAnimation { duration: 200 } }
+                            Behavior on implicitWidth { NumberAnimation { duration: 200 } }
+
+                            Text {
+                                text: "󰈀"
+                                anchors.centerIn: parent
+                                id: networkText
+                                color: col.font
+                                font.family: "Mononoki Nerd Font Propo"
+                                font.pixelSize: 17
+                                font.weight: Font.bold
+                                Behavior on color { ColorAnimation { duration: 200 } }
+                            }
+                            MouseArea {
+                                anchors.fill: parent
+                                hoverEnabled: true
+                                
+                                onEntered: {
+                                    networkButton.color = col.accent
+                                    networkText.color = col.fontDark
+                                }
+                                    
+                                onExited: {
+                                    networkButton.color = "transparent"
+                                    networkText.color = col.font                            
+                                }
+
+                                onClicked: {
+                                    Quickshell.execDetached(["sh", "-c", "kitty nmtui"])
+                                }
+                            }
+                        }
+
+                        Rectangle {
+                            id: bluetoothButton
+                            color: "transparent"
+                            implicitWidth: sttngsHover ? bluetoothText.width + 12 : 0
+                            radius: 3
+                            implicitHeight: parent.height
+                            Behavior on color { ColorAnimation { duration: 200 } }
+                            Behavior on implicitWidth { NumberAnimation { duration: 200 } }
+
+                            Text {
+                                text: "󰂯"
+                                anchors.centerIn: parent
+                                id: bluetoothText
+                                color: col.font
+                                font.family: "Mononoki Nerd Font Propo"
+                                font.pixelSize: 17
+                                font.weight: Font.bold
+                                Behavior on color { ColorAnimation { duration: 200 } }
+                            }
+                            MouseArea {
+                                anchors.fill: parent
+                                hoverEnabled: true
+                                
+                                onEntered: {
+                                    bluetoothButton.color = col.accent
+                                    bluetoothText.color = col.fontDark
+                                }
+                                    
+                                onExited: {
+                                    bluetoothButton.color = "transparent"
+                                    bluetoothText.color = col.font                            
+                                }
+
+                                onClicked: {
+                                    Quickshell.execDetached(["sh", "-c", "blueman-manager"])
+                                }
+                            }
+                        }
+                    }
+                    Text {
+                        id: settingsIcon
+                        anchors.right: parent.right
+                        anchors.verticalCenter: parent.verticalCenter
+                        text: "  "
+                        font.family: "Mononoki Nerd Font Propo"
+                        font.pixelSize: 17
+                        font.weight: Font.bold
+                        color: col.font
+                    }
+                    HoverHandler {
+                        onHoveredChanged: sttngsHover = hovered
+                    } 
                     
                 }
 
@@ -632,7 +859,7 @@ PanelWindow {
                         spacing: 4
                         
                         Text {
-                            text: "󰌌 "
+                            text: "󰌏 "
                             color: col.accent
                             font.family: "Mononoki Nerd Font Propo"
                             font.pixelSize: 17
@@ -705,10 +932,5 @@ PanelWindow {
                 }
             }
         }
-    }
-    
-    // Переопределяемая функция смены воркспейса
-    function changeWorkspace(id) {
-        console.log("Change workspace to:", id)
     }
 }
