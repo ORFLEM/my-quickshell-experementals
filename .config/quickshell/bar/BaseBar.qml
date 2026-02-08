@@ -5,6 +5,7 @@ import Quickshell.Io
 import QtQuick
 import "components"
 import "../helpers"
+import "../"
 
 WlrLayershell {
     id: panel
@@ -18,11 +19,12 @@ WlrLayershell {
     property string activeWindow: ""
     property string kbLayout: ""
     property string wm: ""
-    property var plr: ({})
     property string cava: ""
-    property var vol: ({})
-    property var wthr: ({})
     property string timed: ""
+
+    Variables {
+        id: variables
+    }
     
     anchors {
         top: true
@@ -295,15 +297,6 @@ WlrLayershell {
                     width: weatherRow.width + 8
                     height: 24
 
-                    JsonPoll {
-                        command: "~/.config/quickshell/scripts/weather_wid.sh"
-                        interval: 54000
-                        
-                        onDataChanged: {
-                            wthr = data
-                        }
-                    }
-                    
                     Rectangle {
                         anchors.fill: parent
                         radius: 5
@@ -332,7 +325,7 @@ WlrLayershell {
 
                         Text {
                             id: weatherIcon
-                            text: wthr.icon
+                            text: variables.wthr.icon
                             color: col.font
                             font.family: "Mononoki Nerd Font Propo"
                             font.weight: Font.bold
@@ -341,7 +334,7 @@ WlrLayershell {
                         }
                         Text {
                             id: weatherText
-                            text: wthr.temp + "°C"
+                            text: variables.wthr.temp + "°C"
                             color: col.font
                             font.family: "Mononoki Nerd Font Propo"
                             font.weight: Font.bold
@@ -509,14 +502,6 @@ WlrLayershell {
                     width: plrRow.width + 12
                     height: 24
                  
-                    JsonListen {
-                        id: plrStream
-                        command: "~/.config/quickshell/scripts/music.sh"
-                        onDataChanged: {
-                            plr = data
-                        }
-                    }
-                    
                     ClippingRectangle {
                         anchors.fill: parent
                         radius: 5
@@ -525,7 +510,7 @@ WlrLayershell {
                         Image {
                             anchors.fill: parent
                             fillMode: Image.PreserveAspectCrop
-                            source: "file://" + plr.art    
+                            source: "file://" + variables.plr.art    
                         }
                     }
                     
@@ -553,10 +538,10 @@ WlrLayershell {
                         
                         Text {
                             id: plrText1
-                            text: plr.status
+                            text: variables.plr.status
                             color: col.accent
-                            font.family: "Source Code Pro Medium"
-                            font.pixelSize: 16
+                            font.family: "Eurostile Extended"
+                            font.pixelSize: 15
                             Behavior on color { ColorAnimation { duration: 200 } }
                         }
                         
@@ -566,28 +551,28 @@ WlrLayershell {
                         
                         Text {
                             id: plrText2
-                            text: plr.artist.length > 15 ? plr.artist.substring(0, 15) + "…" : plr.artist
+                            text: variables.plr.artist.length > 15 ? variables.plr.artist.substring(0, 15) + "…" : variables.plr.artist
                             color: col.font
-                            font.family: "Source Code Pro Medium"
-                            font.pixelSize: 17
+                            font.family: "Eurostile Extended"
+                            font.pixelSize: 15
                             Behavior on color { ColorAnimation { duration: 200 } }
                         }
                         
                         Text {
                             text: '      '
-                            font.family: "Source Code Pro Medium"
+                            font.family: "Eurostile Extended"
                         }
                         
                         Text {
                             id: plrText3
-                            text: plr.title.length > 35 ? plr.title.substring(0, 35) + "…" : plr.title
+                            text: variables.plr.title.length > 35 ? variables.plr.title.substring(0, 35) + "…" : variables.plr.title
                             color: col.font
-                            font.family: "Source Code Pro Medium"
-                            font.pixelSize: 17
+                            font.family: "Eurostile Extended"
+                            font.pixelSize: 15
                             Behavior on color { ColorAnimation { duration: 200 } }
                         }
                     }
-
+                    
                     MouseArea {
                         anchors.fill: parent
                         hoverEnabled: true
@@ -610,7 +595,7 @@ WlrLayershell {
                                 Quickshell.execDetached(["sh", "-c", "playerctl play-pause"])
                             }
                             if (mouse.button === Qt.RightButton) {
-                                Quickshell.execDetached(["sh", "-c", "~/.config/quickshell/scripts/popup.sh plr"])
+                                PlayerPopup.plrPopup(isOpen) = PlayerPopup.plrPopup(!isOpen)
                             }
                         }
                         onWheel: function(wheel) {
@@ -782,13 +767,6 @@ WlrLayershell {
                     width: volText.width + 8
                     height: 24
 
-                    JsonListen {
-                        command: "~/.config/quickshell/scripts/vol.sh"
-                        onDataChanged: {
-                            vol = data
-                        }    
-                    }
-                    
                     Rectangle {
                         anchors.fill: parent
                         radius: 5
@@ -807,7 +785,7 @@ WlrLayershell {
                         anchors.centerIn: parent
                         
                         Text {
-                            text: vol.sign
+                            text: variables.vol.sign
                             color: col.accent
                             font.family: "Mononoki Nerd font Propo"
                             font.pixelSize: 17
@@ -818,7 +796,7 @@ WlrLayershell {
                         }
                         
                         Text {
-                            text: vol.vol
+                            text: variables.vol.vol
                             color: col.font
                             font.family: "Mononoki Nerd Font Propo"
                             font.pixelSize: 17
